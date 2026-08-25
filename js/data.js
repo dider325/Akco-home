@@ -5,9 +5,9 @@ const AKCO_DATA = {
     cta: "Creating Homes. Building Trust."
   },
   services: [
-    { title: "Residential Development", number: "01" },
-    { title: "Joint Venture / Landowner Partnerships", number: "02" },
-    { title: "Sale of Apartments", number: "03" }
+    { title: "Residential Development" },
+    { title: "Joint Venture / Landowner Partnerships" },
+    { title: "Sale of Apartments" }
   ],
   principles: [
     "Thoughtful Design",

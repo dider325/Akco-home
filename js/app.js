@@ -5,7 +5,7 @@
     const h=document.querySelector("[data-header]");
     if(!h)return;
     h.innerHTML=`<div class="wrap nav">
-      <a class="logo" href="index.html">AKCO</a>
+      <a class="logo" href="index.html" aria-label="AKCO Real Estate Ltd."><img src="assets/akco-logo.png" alt="AKCO Real Estate Ltd."></a>
       <nav class="links" id="siteLinks">
         <a href="index.html">Home</a>
         <a href="projects.html">Projects</a>
@@ -35,19 +35,26 @@
     const f=document.querySelector("[data-footer]");
     if(!f)return;
     f.innerHTML=`<div class="wrap">
+      <div class="footer-topline"><span>AKCO / Real Estate Ltd.</span><span>Dhaka · Residential Development</span></div>
       <div class="footer-grid">
-        <div><div class="footer-brand">AKCO</div><p>Homes Done Thoughtfully — a boutique residential developer based in Dhaka.</p></div>
-        <div><div class="footer-title">Office</div><p>${AKCO_DATA.contact.address}</p><p>${AKCO_DATA.contact.phone}</p></div>
-        <div><div class="footer-title">Email</div><p>${AKCO_DATA.contact.email}</p></div>
-        <div><div class="footer-title">Social</div>${AKCO_DATA.social.map(s=>`<a href="${s.url}">${s.label}</a>`).join("")}</div>
+        <div class="footer-brand-block">
+          <a class="footer-brand" href="index.html" aria-label="AKCO Real Estate Ltd."><img src="assets/akco-logo.png" alt="AKCO Real Estate Ltd."></a>
+          <p>Homes Done Thoughtfully — a boutique residential developer based in Dhaka.</p>
+          <a class="footer-cta" href="contact.html">Start a conversation <span>↗</span></a>
+        </div>
+        <div><div class="footer-title">Explore</div>
+          <a href="index.html">Home</a><a href="projects.html">Projects</a><a href="about.html">About AKCO</a><a href="legacy.html">Legacy &amp; Leadership</a>
+        </div>
+        <div><div class="footer-title">Office</div><p>${AKCO_DATA.contact.address}</p><p>${AKCO_DATA.contact.phone}</p><p>${AKCO_DATA.contact.email}</p></div>
+        <div><div class="footer-title">Connect</div>${AKCO_DATA.social.map(s=>`<a href="${s.url}">${s.label}</a>`).join("")}</div>
       </div>
-      <div class="footer-bottom"><span>© ${new Date().getFullYear()} AKCO Real Estate Ltd.</span><span>Homes Done Thoughtfully</span></div>
+      <div class="footer-bottom"><span>© ${new Date().getFullYear()} AKCO Real Estate Ltd.</span><span>Homes Done Thoughtfully</span><span>Dhaka, Bangladesh</span></div>
     </div>`;
   }
 
   function renderServices(){
     document.querySelectorAll("[data-services]").forEach(el=>{
-      el.innerHTML=AKCO_DATA.services.map(s=>`<article class="service reveal"><div class="eyebrow">${s.number}</div><h3>${s.title}</h3><p>Approved service description will be added when supplied by AKCO.</p></article>`).join("");
+      el.innerHTML=AKCO_DATA.services.map(s=>`<article class="service reveal"><div class="point-bullet" aria-hidden="true">•</div><h3>${s.title}</h3><p>Approved service description will be added when supplied by AKCO.</p></article>`).join("");
     });
   }
 
@@ -57,7 +64,7 @@
       <div class="project-media">
         <div class="project-media-stage">
           ${imgs.map((src,j)=>`<img class="project-slide ${j===0?"is-active":""}" src="${src}" alt="${p.name} — view ${j+1}" data-slide="${j}">`).join("")}
-          <div class="project-media-meta"><span>${String(i+1).padStart(2,"0")}</span><span>${p.status}</span></div>
+          <div class="project-media-meta"><span>${p.status}</span></div>
           <div class="project-media-line"><span></span></div>
         </div>
       </div>
