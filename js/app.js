@@ -132,9 +132,20 @@
     items.forEach(x=>io.observe(x));
   }
 
+  function resetPageWipe(){
+    const wipe=document.querySelector(".page-wipe");
+    if(!wipe)return;
+    wipe.style.transition="none";
+    wipe.style.transform="translateX(100%)";
+    requestAnimationFrame(()=>{wipe.style.transition=""});
+  }
+
   function pageTransitions(){
     const wipe=document.querySelector(".page-wipe");
     if(!wipe||reduce)return;
+    window.addEventListener("pageshow",e=>{
+      if(e.persisted)resetPageWipe();
+    });
     document.querySelectorAll("a[href]").forEach(a=>{
       const href=a.getAttribute("href");
       if(!href||href.startsWith("#")||href.startsWith("mailto:")||href.startsWith("tel:")||href.startsWith("http"))return;

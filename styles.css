@@ -278,7 +278,8 @@ body{font-family:var(--sans);font-size:16px}
 .eyebrow{font-size:11px;letter-spacing:.13em;font-weight:600}
 .links{gap:32px}.links a{font-size:13px;text-transform:none;letter-spacing:.025em;font-weight:500}
 .menu{font-size:12px;letter-spacing:.08em}
-.logo{width:56px;height:58px}
+/* Client refinement: slightly more prominent logo, while preserving header balance. */
+.logo{width:76px;height:78px}
 p{font-size:15.5px;line-height:1.82}
 .micro-copy{font-size:11px;letter-spacing:.08em;text-transform:none}
 .section-kicker{font-size:12px;letter-spacing:.10em;font-weight:600;text-transform:none}
@@ -340,7 +341,7 @@ p{font-size:15.5px;line-height:1.82}
    ========================================================= */
 
 /* Loader: slightly more presence without becoming dominant. */
-.loader span{width:104px;height:104px}
+.loader span{width:112px;height:112px}
 
 /* The AKCO Approach */
 .intro-section{
@@ -460,7 +461,8 @@ p{font-size:15.5px;line-height:1.82}
 .cta-actions .btn-filled{background:var(--accent);border-color:var(--accent)}
 
 @media(max-width:900px){
-  .loader span{width:98px;height:98px}
+  .logo{width:72px;height:74px}
+  .loader span{width:124px;height:124px}
   .intro-section{background-size:100% 100%,auto}
   .intro-grid{gap:48px}
   .intro-grid h2{font-size:clamp(58px,11vw,92px)}
@@ -487,7 +489,8 @@ p{font-size:15.5px;line-height:1.82}
 }
 
 @media(max-width:560px){
-  .loader span{width:94px;height:94px}
+  .logo{width:68px;height:71px}
+  .loader span{width:120px;height:120px}
   .intro-section:after{font-size:45vw;right:-.12em;bottom:-.02em}
   .intro-grid h2{font-size:17.5vw;line-height:.88}
   .intro-grid .lead{font-size:16px;line-height:1.78}
