@@ -286,15 +286,15 @@
     });
   }
 
-  function resolveAssetUrl(url) {
+  function normalizeImageUrl(url) {
     if (!url) return '';
     const value = String(url).trim();
     if (!value) return '';
     if (/^(https?:|data:|blob:|\/\/)/i.test(value)) return value;
-    // Supabase Storage paths can be stored as just "website/file.jpg".
-    // Never let those become broken Netlify-relative URLs.
+    if (/^(?:\.\/)?assets\//i.test(value)) return value.replace(/^\.\//, '');
+    if (/supabase\.co\/storage\/v1\/object\//i.test(value)) return value;
     const base = window.SUPABASE_CONFIG?.url;
-    if (base && !value.startsWith('./') && !value.startsWith('../') && !value.startsWith('/')) {
+    if (base && /^[^?#]+\.(?:png|jpe?g|webp|gif|svg)(?:[?#].*)?$/i.test(value)) {
       return base.replace(/\/$/, '') + '/storage/v1/object/public/akco-media/' + value.replace(/^\/+/, '');
     }
     return value.replace(/^\.\//, '');
@@ -305,24 +305,18 @@
     const fallback = el.classList.contains('hero-media') || el.classList.contains('about-hero-image')
       ? 'assets/hero.svg'
       : el.classList.contains('about-cinema-image') ? 'assets/story.svg' : '';
-    const requested = resolveAssetUrl(url) || fallback;
-    const fallbackUrl = resolveAssetUrl(fallback);
-    if (!requested) return false;
-    if (isBg && el.style.backgroundImage.includes(requested)) return true;
-    if (!isBg && el.src && el.src.includes(requested)) return true;
-
-    const loaded = await preloadImage(requested);
-    if (loaded) {
-      if (isBg) {
-        el.style.backgroundImage = `url("${requested.replace(/"/g, '\\"')}")`;
+    const requested = normalizeImageUrl(url);
+    const fallbackUrl = normalizeImageUrl(fallback);
+    if (requested) {
+      if (isBg && el.style.backgroundImage.includes(requested)) return true;
+      if (!isBg && el.src && el.src.includes(requested)) return true;
+      if (await preloadImage(requested)) {
+        if (isBg) el.style.backgroundImage = `url("${requested.replace(/"/g, '\\"')}")`;
+        else el.src = requested;
         el.style.opacity = '1';
-      } else {
-        el.src = requested;
+        return true;
       }
-      return true;
     }
-
-    // Keep a guaranteed bundled asset visible when CMS/Storage is unavailable.
     if (isBg && fallbackUrl) {
       el.style.backgroundImage = `url("${fallbackUrl}")`;
       el.style.opacity = '1';
@@ -859,21 +853,21 @@
       if (aboutHeroUrl) {
         const bg = document.querySelector('.about-hero-image');
         if (bg) {
-          bg.style.backgroundImage = `url("${resolveAssetUrl(aboutHeroUrl).replace(/"/g, '\\"')}")`;
+          bg.style.backgroundImage = `url("${normalizeImageUrl(aboutHeroUrl).replace(/"/g, '\\"')}")`;
           bg.style.opacity = '1';
         }
       }
       if (aboutCinemaUrl) {
         const bg = document.querySelector('.about-cinema-image');
         if (bg) {
-          bg.style.backgroundImage = `url("${resolveAssetUrl(aboutCinemaUrl).replace(/"/g, '\\"')}")`;
+          bg.style.backgroundImage = `url("${normalizeImageUrl(aboutCinemaUrl).replace(/"/g, '\\"')}")`;
           bg.style.opacity = '1';
         }
       }
       if (homepageHeroUrl) {
         const bg = document.querySelector('.hero-media');
         if (bg) {
-          bg.style.backgroundImage = `url("${resolveAssetUrl(homepageHeroUrl).replace(/"/g, '\\"')}")`;
+          bg.style.backgroundImage = `url("${normalizeImageUrl(homepageHeroUrl).replace(/"/g, '\\"')}")`;
           bg.style.opacity = '1';
         }
       }

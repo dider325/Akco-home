@@ -3,8 +3,10 @@ function resolveAkcoAssetUrl(url) {
   const value = String(url).trim();
   if (!value) return '';
   if (/^(https?:|data:|blob:|\/\/)/i.test(value)) return value;
+  if (/^(?:\.\/)?assets\//i.test(value)) return value.replace(/^\.\//, '');
+  if (/supabase\.co\/storage\/v1\/object\//i.test(value)) return value;
   const base = window.SUPABASE_CONFIG?.url;
-  if (base && !value.startsWith('./') && !value.startsWith('../') && !value.startsWith('/')) {
+  if (base && /^[^?#]+\.(?:png|jpe?g|webp|gif|svg)(?:[?#].*)?$/i.test(value)) {
     return base.replace(/\/$/, '') + '/storage/v1/object/public/akco-media/' + value.replace(/^\/+/, '');
   }
   return value.replace(/^\.\//, '');
