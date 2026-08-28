@@ -286,35 +286,21 @@
     });
   }
 
-  function normalizeCmsImageUrl(url) {
-    if (!url) return '';
-    const value = String(url).trim();
-    if (!value) return '';
-    if (/^(https?:|data:|blob:|\/)/i.test(value)) return value;
-    if (value.startsWith('assets/')) return value;
-    // Accept a raw Supabase storage path saved by older admin builds.
-    if (/^(projects|website|team|legacy|brand)\//i.test(value) && window.SUPABASE_CONFIG?.url) {
-      return `${window.SUPABASE_CONFIG.url.replace(/\/$/, '')}/storage/v1/object/public/akco-media/${value}`;
-    }
-    return value.replace(/^\.\//, '');
-  }
-
   async function safeImageSwap(el, url, isBg = false) {
-    const resolvedUrl = normalizeCmsImageUrl(url);
-    if (!el || !resolvedUrl) return false;
-    if (isBg && el.style.backgroundImage.includes(resolvedUrl)) return true;
-    if (!isBg && el.src && el.src.includes(resolvedUrl)) return true;
+    if (!el || !url) return false;
+    if (isBg && el.style.backgroundImage.includes(url)) return true;
+    if (!isBg && el.src && el.src.includes(url)) return true;
 
     // Never expose the fallback asset first. Wait until the CMS image has
     // actually loaded, then perform a single visual swap.
-    const loaded = await preloadImage(resolvedUrl);
+    const loaded = await preloadImage(url);
     if (!loaded) return false;
 
     if (isBg) {
-      el.style.backgroundImage = `url("${resolvedUrl.replace(/"/g, '\\"')}")`;
+      el.style.backgroundImage = `url("${url.replace(/"/g, '\\"')}")`;
       el.style.opacity = '1';
     } else {
-      el.src = resolvedUrl;
+      el.src = url;
     }
     return true;
   }
@@ -563,9 +549,15 @@
           }
         } catch(e){}
 
-        // Supabase is the single source of truth whenever the request succeeds.
-        // Never let an old browser cache overwrite a current database value.
-        const contentMap = Object.fromEntries(dbList.map(c => [c.id, c]));
+        const merged = dbList.map(dbItem => {
+          const localItem = localCached[dbItem.id];
+          if (localItem && localItem.imageUrl && localItem.imageUrl !== 'assets/hero.svg' && localItem.imageUrl !== 'assets/story.svg' && (!dbItem.imageUrl || dbItem.imageUrl === 'assets/hero.svg' || dbItem.imageUrl === 'assets/story.svg')) {
+            return { ...dbItem, imageUrl: localItem.imageUrl };
+          }
+          return dbItem;
+        });
+
+        const contentMap = Object.fromEntries(merged.map(c => [c.id, c]));
         try { localStorage.setItem('akco_site_content_cache', JSON.stringify(contentMap)); } catch (e) {}
 
         // Homepage Hydration

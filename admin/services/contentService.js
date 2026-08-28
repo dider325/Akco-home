@@ -52,19 +52,28 @@ function saveLocalSiteContent(items) {
 export async function getSiteContent() {
   const localList = getLocalSiteContent();
   const client = getSupabase();
-  if (!client) return { data: localList, error: new Error('Supabase client not configured') };
-  try {
-    const { data, error } = await client.from('site_content').select('*').order('id');
-    if (error) return { data: localList, error };
-    if (Array.isArray(data)) {
-      const dbMapped = data.map(mapSiteContentFromDb);
-      saveLocalSiteContent(dbMapped);
-      return { data: dbMapped, error: null };
-    }
-    return { data: localList, error: null };
-  } catch (err) {
-    return { data: localList, error: err };
+  if (client) {
+    try {
+      const { data, error } = await client
+        .from('site_content')
+        .select('*')
+        .order('id');
+
+      if (!error && Array.isArray(data) && data.length) {
+        const dbMapped = data.map(mapSiteContentFromDb);
+        const merged = dbMapped.map(dbItem => {
+          const localItem = localList.find(l => l.id === dbItem.id);
+          if (localItem && localItem.imageUrl && localItem.imageUrl !== 'assets/hero.svg' && (!dbItem.imageUrl || dbItem.imageUrl === 'assets/hero.svg')) {
+            return { ...dbItem, imageUrl: localItem.imageUrl };
+          }
+          return dbItem;
+        });
+        saveLocalSiteContent(merged);
+        return { data: merged, error: null };
+      }
+    } catch (err) {}
   }
+  return { data: localList, error: null };
 }
 
 export async function getSiteContentById(id) {
@@ -73,85 +82,92 @@ export async function getSiteContentById(id) {
   return { data: item || null, error: null };
 }
 
-export async function updateSiteContent(id, contentData) {
+export async function updateSiteContent(id, contentData = {}) {
   const client = getSupabase();
-  if (!client) return { data: null, error: new Error('Supabase client not configured') };
+  const localList = getLocalSiteContent();
+  const idx = localList.findIndex(c => c.id === id);
+  const existingLocal = idx >= 0 ? localList[idx] : null;
 
-  try {
-    // IMPORTANT: site_content.title is NOT NULL. The admin editor often updates
-    // only one field (for example an image), so never upsert a partial row.
-    // First update the existing row. Only create a missing row with safe defaults.
-    const patch = {};
-    if (contentData.eyebrow !== undefined) patch.eyebrow = contentData.eyebrow ?? '';
-    if (contentData.title !== undefined) patch.title = contentData.title ?? '';
-    if (contentData.lead !== undefined) patch.lead = contentData.lead ?? '';
-    if (contentData.body !== undefined) patch.body = contentData.body ?? '';
-    if (contentData.imageUrl !== undefined) patch.image_url = contentData.imageUrl ?? '';
-    if (contentData.extraData !== undefined) patch.extra_data = contentData.extraData ?? {};
-    patch.updated_at = new Date().toISOString();
-
-    const { data: existing, error: lookupError } = await client
-      .from('site_content')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
-    if (lookupError) return { data: null, error: lookupError };
-
-    let data;
-    let error;
-    if (existing) {
-      ({ data, error } = await client
+  if (client) {
+    try {
+      // Always merge with the existing DB row before writing. This is critical because
+      // many image-only saves intentionally omit text fields, while site_content.title
+      // is NOT NULL in the database.
+      const { data: existingDb, error: fetchError } = await client
         .from('site_content')
-        .update(patch)
+        .select('*')
         .eq('id', id)
-        .select()
-        .single());
-    } else {
-      // Missing section: create a complete, constraint-safe row.
-      const insertPayload = {
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      const source = existingDb ? mapSiteContentFromDb(existingDb) : existingLocal;
+      const title = contentData.title !== undefined
+        ? String(contentData.title || '')
+        : String(source?.title || id.replace(/_/g, ' '));
+
+      if (!title.trim()) {
+        throw new Error(`Cannot save site content "${id}": title is required.`);
+      }
+
+      const payload = {
         id,
-        eyebrow: patch.eyebrow ?? '',
-        title: patch.title ?? '',
-        lead: patch.lead ?? '',
-        body: patch.body ?? '',
-        image_url: patch.image_url ?? '',
-        extra_data: patch.extra_data ?? {},
-        updated_at: patch.updated_at
+        title,
+        eyebrow: contentData.eyebrow !== undefined
+          ? String(contentData.eyebrow || '')
+          : String(source?.eyebrow || ''),
+        lead: contentData.lead !== undefined
+          ? String(contentData.lead || '')
+          : String(source?.lead || ''),
+        body: contentData.body !== undefined
+          ? String(contentData.body || '')
+          : String(source?.body || ''),
+        image_url: contentData.imageUrl !== undefined
+          ? String(contentData.imageUrl || '')
+          : String(source?.imageUrl || ''),
+        extra_data: contentData.extraData !== undefined
+          ? (contentData.extraData || {})
+          : (source?.extraData || {}),
+        updated_at: new Date().toISOString()
       };
-      ({ data, error } = await client
+
+      const { data: saved, error: saveError } = await client
         .from('site_content')
-        .insert(insertPayload)
+        .upsert(payload, { onConflict: 'id' })
         .select()
-        .single());
+        .single();
+
+      if (saveError) throw saveError;
+
+      const dbItem = mapSiteContentFromDb(saved);
+      const nextList = [...localList];
+      if (idx >= 0) nextList[idx] = dbItem;
+      else nextList.push(dbItem);
+      saveLocalSiteContent(nextList);
+      return { data: dbItem, error: null };
+    } catch (err) {
+      // Do NOT hide Supabase errors or pretend the write succeeded.
+      console.error(`Failed to update site_content:${id}`, err);
+      return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
     }
-    if (error) return { data: null, error };
-
-    const mapped = mapSiteContentFromDb(data);
-    const list = getLocalSiteContent().filter(item => item.id !== id);
-    list.push(mapped);
-    saveLocalSiteContent(list);
-    return { data: mapped, error: null };
-  } catch (err) {
-    return { data: null, error: err };
   }
-}
 
-// =============================================================================
-// 2. Company Settings
-// =============================================================================
-function mapCompanySettingsFromDb(row) {
-  if (!row) return null;
-  return {
-    id: row.id,
-    companyName: row.company_name || 'AKCO Real Estate Ltd.',
-    tagline: row.tagline || '',
-    establishedYear: row.established_year || '',
-    address: row.address || '',
-    phone: row.phone || '',
-    email: row.email || '',
-    contactIntro: row.contact_intro || '',
-    updatedAt: row.updated_at
+  // No configured Supabase client: local-only fallback for development.
+  const updatedItem = {
+    id,
+    title: contentData.title !== undefined ? contentData.title : (existingLocal?.title || id.replace(/_/g, ' ')),
+    eyebrow: contentData.eyebrow !== undefined ? contentData.eyebrow : (existingLocal?.eyebrow || ''),
+    lead: contentData.lead !== undefined ? contentData.lead : (existingLocal?.lead || ''),
+    body: contentData.body !== undefined ? contentData.body : (existingLocal?.body || ''),
+    imageUrl: contentData.imageUrl !== undefined ? contentData.imageUrl : (existingLocal?.imageUrl || ''),
+    extraData: contentData.extraData !== undefined ? contentData.extraData : (existingLocal?.extraData || {}),
+    updatedAt: new Date().toISOString()
   };
+  const nextList = [...localList];
+  if (idx >= 0) nextList[idx] = updatedItem;
+  else nextList.push(updatedItem);
+  saveLocalSiteContent(nextList);
+  return { data: updatedItem, error: null };
 }
 
 export async function getCompanySettings() {

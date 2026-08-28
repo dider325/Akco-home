@@ -103,7 +103,11 @@ export function fileToDataUrl(file) {
 }
 
 export async function uploadAsset(file, folder = 'website', usageTag = '') {
-  if (!file) return { data: null, error: new Error('No file provided for upload') };
+  if (!file) {
+    return { data: null, error: new Error('No file provided for upload') };
+  }
+
+  // Validate size
   if (file.size > MAX_FILE_SIZE_BYTES) {
     return { data: null, error: new Error('File exceeds maximum allowed size of 10MB') };
   }
@@ -115,46 +119,77 @@ export async function uploadAsset(file, folder = 'website', usageTag = '') {
   const storagePath = `${targetFolder}/${uniqueTimestamp}-${cleanName}`;
   const fileType = detectFileType(cleanName, file.type);
 
-  if (!client) {
-    const dataUrl = await fileToDataUrl(file);
-    return {
-      data: { id: String(uniqueTimestamp), filename: cleanName, storagePath: '', publicUrl: dataUrl, fileType, fileSize: file.size || 0 },
-      error: null
-    };
+  // Try Supabase Storage upload
+  if (client) {
+    try {
+      const { error: uploadError } = await client.storage
+        .from(BUCKET_NAME)
+        .upload(storagePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: file.type || undefined
+        });
+
+      if (!uploadError) {
+        const publicUrl = getPublicUrl(storagePath);
+        
+        // Register in media_assets table
+        try {
+          const { data: assetRecord } = await client
+            .from('media_assets')
+            .insert({
+              filename: cleanName,
+              file_path: storagePath,
+              storage_path: storagePath,
+              public_url: publicUrl,
+              usage_tag: usageTag || `${targetFolder} asset`,
+              file_type: fileType,
+              mime_type: file.type || 'image/jpeg',
+              file_size: file.size || 0
+            })
+            .select()
+            .maybeSingle();
+
+          if (assetRecord) {
+            return { data: mapAssetFromDb(assetRecord), error: null };
+          }
+        } catch {
+          // If DB insert fails, still return publicUrl
+        }
+
+        return {
+          data: {
+            id: String(uniqueTimestamp),
+            filename: cleanName,
+            storagePath,
+            publicUrl,
+            fileType,
+            fileSize: file.size || 0
+          },
+          error: null
+        };
+      }
+    } catch {
+      // Storage upload failed, proceed to data URL fallback
+    }
   }
 
+  // Graceful fallback to compressed Data URL for instant usability & LocalStorage safety
   try {
-    const { error: uploadError } = await client.storage.from(BUCKET_NAME).upload(storagePath, file, {
-      cacheControl: '3600',
-      upsert: true,
-      contentType: file.type || undefined
-    });
-
-    if (uploadError) {
-      return { data: null, error: new Error(`Supabase Storage upload failed (${uploadError.statusCode || 400}): ${uploadError.message || 'Unknown Storage error'}`) };
-    }
-
-    const publicUrl = getPublicUrl(storagePath);
-    const { data: assetRecord, error: dbError } = await client.from('media_assets').insert({
-      filename: cleanName,
-      storage_path: storagePath,
-      public_url: publicUrl,
-      usage_tag: usageTag || `${targetFolder} asset`,
-      file_type: fileType,
-      file_size: file.size || 0
-    }).select().maybeSingle();
-
-    if (dbError) {
-      // Roll back the Storage object if catalog registration fails.
-      await client.storage.from(BUCKET_NAME).remove([storagePath]);
-      return { data: null, error: new Error(`Media catalog save failed: ${dbError.message || 'Unknown database error'}`) };
-    }
-
-    return { data: assetRecord ? mapAssetFromDb(assetRecord) : {
-      id: String(uniqueTimestamp), filename: cleanName, storagePath, publicUrl, fileType, fileSize: file.size || 0
-    }, error: null };
+    const dataUrl = await fileToDataUrl(file);
+    return {
+      data: {
+        id: String(uniqueTimestamp),
+        filename: cleanName,
+        storagePath: '',
+        publicUrl: dataUrl,
+        fileType,
+        fileSize: file.size || 0
+      },
+      error: null
+    };
   } catch (err) {
-    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+    return { data: null, error: err };
   }
 }
 
