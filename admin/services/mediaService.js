@@ -139,7 +139,6 @@ export async function uploadAsset(file, folder = 'website', usageTag = '') {
             .from('media_assets')
             .insert({
               filename: cleanName,
-              file_path: storagePath,
               storage_path: storagePath,
               public_url: publicUrl,
               usage_tag: usageTag || `${targetFolder} asset`,

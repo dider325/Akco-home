@@ -2,9 +2,18 @@
  * AKCO Real Estate Ltd. — Supabase Browser Client
  * Initializes and exports the Supabase client using public URL and anon key.
  * Never expose the service_role key or private secrets here.
+ *
+ * Static-hosting compatible: the browser Supabase bundle is loaded globally
+ * by the HTML entrypoints, so this service does not depend on Node/server
+ * environment variables or a server-side /api/config endpoint.
  */
-import { createClient } from './supabase-bundle.js';
-
+const createClient = (...args) => {
+  const factory = globalThis?.supabase?.createClient;
+  if (typeof factory !== 'function') {
+    throw new Error('Supabase browser client bundle is not loaded');
+  }
+  return factory(...args);
+};
 // Default configuration resolution
 const getEnvConfig = () => {
   if (typeof window !== 'undefined' && window.SUPABASE_CONFIG) {
@@ -84,23 +93,7 @@ export async function ensureClientConfigured() {
     return getSupabase();
   }
 
-  // Static deployments (Vercel/Netlify) do not expose server environment
-  // variables to browser JavaScript. The shared public config is therefore
-  // the primary browser configuration source; keep the API fallback only for
-  // older/local server setups that may still provide /api/config.
-  try {
-    const res = await fetch('/api/config', { headers: { 'Accept': 'application/json' } });
-    if (res.ok) {
-      const data = await res.json();
-      if (data.supabaseUrl && data.supabaseAnonKey) {
-        return initSupabase(data.supabaseUrl, data.supabaseAnonKey);
-      }
-    }
-  } catch {
-    // Static hosting or an unavailable API is fine when public config exists.
-  }
-
-  return getSupabase();
+  return null;
 }
 
 export const supabase = getSupabase();
