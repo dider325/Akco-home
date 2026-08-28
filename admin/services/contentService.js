@@ -78,16 +78,52 @@ export async function updateSiteContent(id, contentData) {
   if (!client) return { data: null, error: new Error('Supabase client not configured') };
 
   try {
-    const payload = { id };
-    if (contentData.eyebrow !== undefined) payload.eyebrow = contentData.eyebrow;
-    if (contentData.title !== undefined) payload.title = contentData.title;
-    if (contentData.lead !== undefined) payload.lead = contentData.lead;
-    if (contentData.body !== undefined) payload.body = contentData.body;
-    if (contentData.imageUrl !== undefined) payload.image_url = contentData.imageUrl;
-    if (contentData.extraData !== undefined) payload.extra_data = contentData.extraData;
-    payload.updated_at = new Date().toISOString();
+    // IMPORTANT: site_content.title is NOT NULL. The admin editor often updates
+    // only one field (for example an image), so never upsert a partial row.
+    // First update the existing row. Only create a missing row with safe defaults.
+    const patch = {};
+    if (contentData.eyebrow !== undefined) patch.eyebrow = contentData.eyebrow ?? '';
+    if (contentData.title !== undefined) patch.title = contentData.title ?? '';
+    if (contentData.lead !== undefined) patch.lead = contentData.lead ?? '';
+    if (contentData.body !== undefined) patch.body = contentData.body ?? '';
+    if (contentData.imageUrl !== undefined) patch.image_url = contentData.imageUrl ?? '';
+    if (contentData.extraData !== undefined) patch.extra_data = contentData.extraData ?? {};
+    patch.updated_at = new Date().toISOString();
 
-    const { data, error } = await client.from('site_content').upsert(payload, { onConflict: 'id' }).select().single();
+    const { data: existing, error: lookupError } = await client
+      .from('site_content')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+    if (lookupError) return { data: null, error: lookupError };
+
+    let data;
+    let error;
+    if (existing) {
+      ({ data, error } = await client
+        .from('site_content')
+        .update(patch)
+        .eq('id', id)
+        .select()
+        .single());
+    } else {
+      // Missing section: create a complete, constraint-safe row.
+      const insertPayload = {
+        id,
+        eyebrow: patch.eyebrow ?? '',
+        title: patch.title ?? '',
+        lead: patch.lead ?? '',
+        body: patch.body ?? '',
+        image_url: patch.image_url ?? '',
+        extra_data: patch.extra_data ?? {},
+        updated_at: patch.updated_at
+      };
+      ({ data, error } = await client
+        .from('site_content')
+        .insert(insertPayload)
+        .select()
+        .single());
+    }
     if (error) return { data: null, error };
 
     const mapped = mapSiteContentFromDb(data);
