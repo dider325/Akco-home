@@ -1,3 +1,15 @@
+function resolveAkcoAssetUrl(url) {
+  if (!url) return '';
+  const value = String(url).trim();
+  if (!value) return '';
+  if (/^(https?:|data:|blob:|\/\/)/i.test(value)) return value;
+  const base = window.SUPABASE_CONFIG?.url;
+  if (base && !value.startsWith('./') && !value.startsWith('../') && !value.startsWith('/')) {
+    return base.replace(/\/$/, '') + '/storage/v1/object/public/akco-media/' + value.replace(/^\/+/, '');
+  }
+  return value.replace(/^\.\//, '');
+}
+
 const AKCO_DATA = {
   homepageSelectedProjectIds: [],
   site: {
@@ -105,15 +117,15 @@ const AKCO_DATA = {
       } catch(e){}
 
       if (heroUrl) {
-        cssRules += `.hero-media { background-image: url("${heroUrl.replace(/"/g, '\\"')}") !important; opacity: 1 !important; }\n`;
+        cssRules += `.hero-media { background-image: url("${resolveAkcoAssetUrl(heroUrl).replace(/"/g, '\\"')}") !important; opacity: 1 !important; }\n`;
       }
       
       if (aboutHeroUrl) {
-        cssRules += `.about-hero-image { background-image: url("${aboutHeroUrl.replace(/"/g, '\\"')}") !important; opacity: 1 !important; }\n`;
+        cssRules += `.about-hero-image { background-image: url("${resolveAkcoAssetUrl(aboutHeroUrl).replace(/"/g, '\\"')}") !important; opacity: 1 !important; }\n`;
       }
 
       if (aboutCinemaUrl) {
-        cssRules += `.about-cinema-image { background-image: url("${aboutCinemaUrl.replace(/"/g, '\\"')}") !important; opacity: 1 !important; }\n`;
+        cssRules += `.about-cinema-image { background-image: url("${resolveAkcoAssetUrl(aboutCinemaUrl).replace(/"/g, '\\"')}") !important; opacity: 1 !important; }\n`;
       }
 
       if (cssRules) {

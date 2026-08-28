@@ -286,23 +286,50 @@
     });
   }
 
-  async function safeImageSwap(el, url, isBg = false) {
-    if (!el || !url) return false;
-    if (isBg && el.style.backgroundImage.includes(url)) return true;
-    if (!isBg && el.src && el.src.includes(url)) return true;
-
-    // Never expose the fallback asset first. Wait until the CMS image has
-    // actually loaded, then perform a single visual swap.
-    const loaded = await preloadImage(url);
-    if (!loaded) return false;
-
-    if (isBg) {
-      el.style.backgroundImage = `url("${url.replace(/"/g, '\\"')}")`;
-      el.style.opacity = '1';
-    } else {
-      el.src = url;
+  function resolveAssetUrl(url) {
+    if (!url) return '';
+    const value = String(url).trim();
+    if (!value) return '';
+    if (/^(https?:|data:|blob:|\/\/)/i.test(value)) return value;
+    // Supabase Storage paths can be stored as just "website/file.jpg".
+    // Never let those become broken Netlify-relative URLs.
+    const base = window.SUPABASE_CONFIG?.url;
+    if (base && !value.startsWith('./') && !value.startsWith('../') && !value.startsWith('/')) {
+      return base.replace(/\/$/, '') + '/storage/v1/object/public/akco-media/' + value.replace(/^\/+/, '');
     }
-    return true;
+    return value.replace(/^\.\//, '');
+  }
+
+  async function safeImageSwap(el, url, isBg = false) {
+    if (!el) return false;
+    const fallback = el.classList.contains('hero-media') || el.classList.contains('about-hero-image')
+      ? 'assets/hero.svg'
+      : el.classList.contains('about-cinema-image') ? 'assets/story.svg' : '';
+    const requested = resolveAssetUrl(url) || fallback;
+    const fallbackUrl = resolveAssetUrl(fallback);
+    if (!requested) return false;
+    if (isBg && el.style.backgroundImage.includes(requested)) return true;
+    if (!isBg && el.src && el.src.includes(requested)) return true;
+
+    const loaded = await preloadImage(requested);
+    if (loaded) {
+      if (isBg) {
+        el.style.backgroundImage = `url("${requested.replace(/"/g, '\\"')}")`;
+        el.style.opacity = '1';
+      } else {
+        el.src = requested;
+      }
+      return true;
+    }
+
+    // Keep a guaranteed bundled asset visible when CMS/Storage is unavailable.
+    if (isBg && fallbackUrl) {
+      el.style.backgroundImage = `url("${fallbackUrl}")`;
+      el.style.opacity = '1';
+    } else if (!isBg && fallbackUrl) {
+      el.src = fallbackUrl;
+    }
+    return false;
   }
 
   // ===========================================================================
@@ -832,21 +859,21 @@
       if (aboutHeroUrl) {
         const bg = document.querySelector('.about-hero-image');
         if (bg) {
-          bg.style.backgroundImage = `url("${aboutHeroUrl.replace(/"/g, '\\"')}")`;
+          bg.style.backgroundImage = `url("${resolveAssetUrl(aboutHeroUrl).replace(/"/g, '\\"')}")`;
           bg.style.opacity = '1';
         }
       }
       if (aboutCinemaUrl) {
         const bg = document.querySelector('.about-cinema-image');
         if (bg) {
-          bg.style.backgroundImage = `url("${aboutCinemaUrl.replace(/"/g, '\\"')}")`;
+          bg.style.backgroundImage = `url("${resolveAssetUrl(aboutCinemaUrl).replace(/"/g, '\\"')}")`;
           bg.style.opacity = '1';
         }
       }
       if (homepageHeroUrl) {
         const bg = document.querySelector('.hero-media');
         if (bg) {
-          bg.style.backgroundImage = `url("${homepageHeroUrl.replace(/"/g, '\\"')}")`;
+          bg.style.backgroundImage = `url("${resolveAssetUrl(homepageHeroUrl).replace(/"/g, '\\"')}")`;
           bg.style.opacity = '1';
         }
       }
