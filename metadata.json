@@ -1,0 +1,8 @@
+{
+  "name": "AKCO Real Estate",
+  "description": "Boutique residential developer based in Dhaka creating thoughtfully considered homes.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

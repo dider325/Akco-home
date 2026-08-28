@@ -6,7 +6,7 @@
    ========================================================= */
 
 .legacy-page{background:var(--bg)}
-.legacy-page .header{background:linear-gradient(var(--bg),rgba(235,230,223,.02))}
+.legacy-page .header{background:rgba(235,230,223,.42);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .legacy-page .display{font-weight:400}
 
 /* Hero */
@@ -85,6 +85,9 @@
 /* Legacy-specific motion states; app.js keeps the global reveal observer */
 .legacy-page .reveal{opacity:0;transform:translateY(42px);transition:opacity .95s var(--ease),transform .95s var(--ease)}
 .legacy-page .reveal.in{opacity:1;transform:none}
+/* CMS-inserted leadership profiles are visible immediately; motion is optional. */
+.legacy-leadership .legacy-leader.reveal{opacity:1;transform:none}
+.legacy-leadership .legacy-leader.reveal.in{opacity:1;transform:none}
 .legacy-page .reveal-left{opacity:0;transform:translateX(-30px);transition:opacity .95s var(--ease),transform .95s var(--ease)}
 .legacy-page .reveal-left.in{opacity:1;transform:none}
 
