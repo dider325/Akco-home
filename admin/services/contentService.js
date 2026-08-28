@@ -71,12 +71,7 @@ export async function getSiteContent() {
         saveLocalSiteContent(merged);
         return { data: merged, error: null };
       }
-      if (error) {
-        console.warn('[AKCO CMS] site_content query failed:', error);
-      }
-    } catch (err) {
-      console.warn('[AKCO CMS] site_content query exception:', err);
-    }
+    } catch (err) {}
   }
   return { data: localList, error: null };
 }

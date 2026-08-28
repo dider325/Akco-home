@@ -3402,7 +3402,7 @@ function handleAction(actionName, btnElement) {
 async function startApp() {
   try {
     // 1. Ensure client is initialized
-    ensureClientConfigured().catch(() => {});
+    await ensureClientConfigured();
 
     // 2. Check local session (zero network latency)
     const { data: session } = await getSession();
