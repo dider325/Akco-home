@@ -52,28 +52,19 @@ function saveLocalSiteContent(items) {
 export async function getSiteContent() {
   const localList = getLocalSiteContent();
   const client = getSupabase();
-  if (client) {
-    try {
-      const { data, error } = await client
-        .from('site_content')
-        .select('*')
-        .order('id');
-
-      if (!error && Array.isArray(data) && data.length) {
-        const dbMapped = data.map(mapSiteContentFromDb);
-        const merged = dbMapped.map(dbItem => {
-          const localItem = localList.find(l => l.id === dbItem.id);
-          if (localItem && localItem.imageUrl && localItem.imageUrl !== 'assets/hero.svg' && (!dbItem.imageUrl || dbItem.imageUrl === 'assets/hero.svg')) {
-            return { ...dbItem, imageUrl: localItem.imageUrl };
-          }
-          return dbItem;
-        });
-        saveLocalSiteContent(merged);
-        return { data: merged, error: null };
-      }
-    } catch (err) {}
+  if (!client) return { data: localList, error: new Error('Supabase client not configured') };
+  try {
+    const { data, error } = await client.from('site_content').select('*').order('id');
+    if (error) return { data: localList, error };
+    if (Array.isArray(data)) {
+      const dbMapped = data.map(mapSiteContentFromDb);
+      saveLocalSiteContent(dbMapped);
+      return { data: dbMapped, error: null };
+    }
+    return { data: localList, error: null };
+  } catch (err) {
+    return { data: localList, error: err };
   }
-  return { data: localList, error: null };
 }
 
 export async function getSiteContentById(id) {
@@ -84,73 +75,29 @@ export async function getSiteContentById(id) {
 
 export async function updateSiteContent(id, contentData) {
   const client = getSupabase();
-  let dbItem = null;
+  if (!client) return { data: null, error: new Error('Supabase client not configured') };
 
-  if (client) {
-    try {
-      const payload = {};
-      if (contentData.eyebrow !== undefined) payload.eyebrow = contentData.eyebrow;
-      if (contentData.title !== undefined) payload.title = contentData.title;
-      if (contentData.lead !== undefined) payload.lead = contentData.lead;
-      if (contentData.body !== undefined) payload.body = contentData.body;
-      if (contentData.imageUrl !== undefined) payload.image_url = contentData.imageUrl;
-      if (contentData.extraData !== undefined) payload.extra_data = contentData.extraData;
-      payload.updated_at = new Date().toISOString();
+  try {
+    const payload = { id };
+    if (contentData.eyebrow !== undefined) payload.eyebrow = contentData.eyebrow;
+    if (contentData.title !== undefined) payload.title = contentData.title;
+    if (contentData.lead !== undefined) payload.lead = contentData.lead;
+    if (contentData.body !== undefined) payload.body = contentData.body;
+    if (contentData.imageUrl !== undefined) payload.image_url = contentData.imageUrl;
+    if (contentData.extraData !== undefined) payload.extra_data = contentData.extraData;
+    payload.updated_at = new Date().toISOString();
 
-      const { data: updatedData, error: updateErr } = await client
-        .from('site_content')
-        .update(payload)
-        .eq('id', id)
-        .select()
-        .maybeSingle();
+    const { data, error } = await client.from('site_content').upsert(payload, { onConflict: 'id' }).select().single();
+    if (error) return { data: null, error };
 
-      if (!updateErr && updatedData) {
-        dbItem = mapSiteContentFromDb(updatedData);
-      } else {
-        const insertPayload = {
-          id,
-          title: contentData.title || id.replace(/_/g, ' '),
-          eyebrow: contentData.eyebrow || '',
-          lead: contentData.lead || '',
-          body: contentData.body || '',
-          image_url: contentData.imageUrl || '',
-          extra_data: contentData.extraData || {},
-          ...payload
-        };
-
-        const { data: insertData } = await client
-          .from('site_content')
-          .upsert(insertPayload, { onConflict: 'id' })
-          .select()
-          .single();
-
-        if (insertData) dbItem = mapSiteContentFromDb(insertData);
-      }
-    } catch (err) {}
+    const mapped = mapSiteContentFromDb(data);
+    const list = getLocalSiteContent().filter(item => item.id !== id);
+    list.push(mapped);
+    saveLocalSiteContent(list);
+    return { data: mapped, error: null };
+  } catch (err) {
+    return { data: null, error: err };
   }
-
-  // Update Local Storage store & cache
-  const list = getLocalSiteContent();
-  const idx = list.findIndex(c => c.id === id);
-  const updatedItem = dbItem || {
-    id,
-    title: contentData.title !== undefined ? contentData.title : (idx >= 0 ? list[idx].title : ''),
-    eyebrow: contentData.eyebrow !== undefined ? contentData.eyebrow : (idx >= 0 ? list[idx].eyebrow : ''),
-    lead: contentData.lead !== undefined ? contentData.lead : (idx >= 0 ? list[idx].lead : ''),
-    body: contentData.body !== undefined ? contentData.body : (idx >= 0 ? list[idx].body : ''),
-    imageUrl: contentData.imageUrl !== undefined ? contentData.imageUrl : (idx >= 0 ? list[idx].imageUrl : ''),
-    extraData: contentData.extraData !== undefined ? contentData.extraData : (idx >= 0 ? list[idx].extraData : {}),
-    updatedAt: new Date().toISOString()
-  };
-
-  if (idx >= 0) {
-    list[idx] = updatedItem;
-  } else {
-    list.push(updatedItem);
-  }
-
-  saveLocalSiteContent(list);
-  return { data: updatedItem, error: null };
 }
 
 // =============================================================================
