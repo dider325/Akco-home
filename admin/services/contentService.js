@@ -84,90 +84,89 @@ export async function getSiteContentById(id) {
 
 export async function updateSiteContent(id, contentData = {}) {
   const client = getSupabase();
-  const localList = getLocalSiteContent();
-  const idx = localList.findIndex(c => c.id === id);
-  const existingLocal = idx >= 0 ? localList[idx] : null;
+  if (!client) return { data: null, error: new Error('Supabase client not configured') };
 
-  if (client) {
-    try {
-      // Always merge with the existing DB row before writing. This is critical because
-      // many image-only saves intentionally omit text fields, while site_content.title
-      // is NOT NULL in the database.
-      const { data: existingDb, error: fetchError } = await client
+  try {
+    // Always read the existing row first. This prevents partial edits (especially
+    // image-only edits) from turning required columns such as `title` into NULL.
+    const { data: existing, error: readErr } = await client
+      .from('site_content')
+      .select('*')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (readErr) return { data: null, error: readErr };
+
+    const existingTitle = typeof existing?.title === 'string' ? existing.title : '';
+    const incomingTitle = typeof contentData.title === 'string' ? contentData.title.trim() : '';
+    const title = incomingTitle || existingTitle || id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+    // Build a complete, valid row from existing values + only the fields being changed.
+    const payload = {
+      title,
+      eyebrow: contentData.eyebrow !== undefined ? (contentData.eyebrow ?? '') : (existing?.eyebrow ?? ''),
+      lead: contentData.lead !== undefined ? (contentData.lead ?? '') : (existing?.lead ?? ''),
+      body: contentData.body !== undefined ? (contentData.body ?? '') : (existing?.body ?? ''),
+      image_url: contentData.imageUrl !== undefined ? (contentData.imageUrl ?? '') : (existing?.image_url ?? ''),
+      extra_data: contentData.extraData !== undefined ? (contentData.extraData ?? {}) : (existing?.extra_data ?? {}),
+      updated_at: new Date().toISOString()
+    };
+
+    let saved;
+
+    if (existing) {
+      const { data, error } = await client
         .from('site_content')
-        .select('*')
+        .update(payload)
         .eq('id', id)
+        .select()
         .maybeSingle();
 
-      if (fetchError) throw fetchError;
-
-      const source = existingDb ? mapSiteContentFromDb(existingDb) : existingLocal;
-      const title = contentData.title !== undefined
-        ? String(contentData.title || '')
-        : String(source?.title || id.replace(/_/g, ' '));
-
-      if (!title.trim()) {
-        throw new Error(`Cannot save site content "${id}": title is required.`);
-      }
-
-      const payload = {
-        id,
-        title,
-        eyebrow: contentData.eyebrow !== undefined
-          ? String(contentData.eyebrow || '')
-          : String(source?.eyebrow || ''),
-        lead: contentData.lead !== undefined
-          ? String(contentData.lead || '')
-          : String(source?.lead || ''),
-        body: contentData.body !== undefined
-          ? String(contentData.body || '')
-          : String(source?.body || ''),
-        image_url: contentData.imageUrl !== undefined
-          ? String(contentData.imageUrl || '')
-          : String(source?.imageUrl || ''),
-        extra_data: contentData.extraData !== undefined
-          ? (contentData.extraData || {})
-          : (source?.extraData || {}),
-        updated_at: new Date().toISOString()
-      };
-
-      const { data: saved, error: saveError } = await client
+      if (error) return { data: null, error };
+      if (!data) return { data: null, error: new Error(`No site_content row was updated for "${id}". Check the admin RLS UPDATE policy.`) };
+      saved = data;
+    } else {
+      const { data, error } = await client
         .from('site_content')
-        .upsert(payload, { onConflict: 'id' })
+        .insert({ id, ...payload })
         .select()
         .single();
 
-      if (saveError) throw saveError;
-
-      const dbItem = mapSiteContentFromDb(saved);
-      const nextList = [...localList];
-      if (idx >= 0) nextList[idx] = dbItem;
-      else nextList.push(dbItem);
-      saveLocalSiteContent(nextList);
-      return { data: dbItem, error: null };
-    } catch (err) {
-      // Do NOT hide Supabase errors or pretend the write succeeded.
-      console.error(`Failed to update site_content:${id}`, err);
-      return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+      if (error) return { data: null, error };
+      saved = data;
     }
-  }
 
-  // No configured Supabase client: local-only fallback for development.
-  const updatedItem = {
-    id,
-    title: contentData.title !== undefined ? contentData.title : (existingLocal?.title || id.replace(/_/g, ' ')),
-    eyebrow: contentData.eyebrow !== undefined ? contentData.eyebrow : (existingLocal?.eyebrow || ''),
-    lead: contentData.lead !== undefined ? contentData.lead : (existingLocal?.lead || ''),
-    body: contentData.body !== undefined ? contentData.body : (existingLocal?.body || ''),
-    imageUrl: contentData.imageUrl !== undefined ? contentData.imageUrl : (existingLocal?.imageUrl || ''),
-    extraData: contentData.extraData !== undefined ? contentData.extraData : (existingLocal?.extraData || {}),
-    updatedAt: new Date().toISOString()
+    const dbItem = mapSiteContentFromDb(saved);
+
+    // Keep local cache only as a fallback; never let it replace a successful DB value.
+    const list = getLocalSiteContent();
+    const idx = list.findIndex(c => c.id === id);
+    if (idx >= 0) list[idx] = dbItem;
+    else list.push(dbItem);
+    saveLocalSiteContent(list);
+
+    return { data: dbItem, error: null };
+  } catch (err) {
+    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+  }
+}
+
+// =============================================================================
+// 2. Company Settings
+// =============================================================================
+function mapCompanySettingsFromDb(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    companyName: row.company_name || 'AKCO Real Estate Ltd.',
+    tagline: row.tagline || '',
+    establishedYear: row.established_year || '',
+    address: row.address || '',
+    phone: row.phone || '',
+    email: row.email || '',
+    contactIntro: row.contact_intro || '',
+    updatedAt: row.updated_at
   };
-  const nextList = [...localList];
-  if (idx >= 0) nextList[idx] = updatedItem;
-  else nextList.push(updatedItem);
-  saveLocalSiteContent(nextList);
-  return { data: updatedItem, error: null };
 }
 
 export async function getCompanySettings() {
