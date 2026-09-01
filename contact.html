@@ -37,7 +37,7 @@
    <div class="contact-detail reveal-left"><div><div class="label">Office Address</div><p>Address to be supplied by AKCO.</p></div></div>
    <div class="contact-detail reveal-left"><div><div class="label">Phone</div><p>Phone number to be supplied by AKCO.</p></div></div>
    <div class="contact-detail reveal-left"><div><div class="label">Company Email</div><p>Email address to be supplied by AKCO.</p></div></div>
-   <div class="contact-detail reveal-left"><div><div class="label">Social</div><p>Facebook · Instagram · LinkedIn</p></div></div>
+   <div class="contact-detail reveal-left"><div><div class="label">Social</div><div class="contact-social-links" data-contact-social></div></div></div>
   </div>
   <form class="form contact-form reveal-right" id="contactForm" onsubmit="event.preventDefault()">
    <div class="form-heading"><div class="eyebrow">Send an inquiry</div><span>We'd love to hear from you.</span></div>
@@ -49,8 +49,16 @@
   </form>
  </div>
  <div class="wrap map map-premium reveal">
-  <div class="map-grid"></div><div class="map-pulse"></div>
-  <span><i></i> Google Maps · Address to be supplied by AKCO</span>
+  <iframe
+   class="contact-map-frame"
+   src="https://www.google.com/maps?q=23.7756061,90.4078141&z=17&output=embed"
+   title="AKCO Office location — Niketan, Gulshan-1, Dhaka"
+   loading="lazy"
+   referrerpolicy="no-referrer-when-downgrade"
+   allowfullscreen></iframe>
+  <a class="contact-map-link" href="https://www.google.com/maps/search/House+%23+29+Road+%23+12+Block+%23+F+Niketan+Gulshan+-1/@23.7756061,90.4078141,17z/data=!3m1!4b1?entry=ttu" target="_blank" rel="noopener noreferrer">
+   <i></i> View location on Google Maps ↗
+  </a>
  </div>
 </section>
 

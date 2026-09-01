@@ -84,10 +84,14 @@
     const imgs=(p.images&&p.images.length?p.images:[p.featuredImage||"assets/project-1.svg"]).slice(0,4);
     return `<article class="project project-editorial reveal" data-status="${escapeHtml(p.status)}" data-project-id="${escapeHtml(p.id || "")}">
       <div class="project-media">
-        <div class="project-media-stage">
+        <div class="project-media-stage" tabindex="0" aria-label="${escapeHtml(p.name)} — ${escapeHtml(p.status)}">
           ${imgs.map((src,j)=>`<img class="project-slide ${j===0?"is-active":""}" src="${escapeHtml(src)}" alt="${escapeHtml(p.name)} — view ${j+1}" data-slide="${j}">`).join("")}
           <div class="project-media-meta"><span>${escapeHtml(p.status)}</span></div>
           <div class="project-media-line"><span></span></div>
+          <div class="project-hover-info" aria-hidden="true">
+            <div class="project-hover-status">${escapeHtml(p.status)}</div>
+            <h3>${escapeHtml(p.name)}</h3>
+          </div>
         </div>
       </div>
       <div class="project-info">
@@ -286,44 +290,23 @@
     });
   }
 
-  function normalizeImageUrl(url) {
-    if (!url) return '';
-    const value = String(url).trim();
-    if (!value) return '';
-    if (/^(https?:|data:|blob:|\/\/)/i.test(value)) return value;
-    if (/^(?:\.\/)?assets\//i.test(value)) return value.replace(/^\.\//, '');
-    if (/supabase\.co\/storage\/v1\/object\//i.test(value)) return value;
-    const base = window.SUPABASE_CONFIG?.url;
-    if (base && /^[^?#]+\.(?:png|jpe?g|webp|gif|svg)(?:[?#].*)?$/i.test(value)) {
-      return base.replace(/\/$/, '') + '/storage/v1/object/public/akco-media/' + value.replace(/^\/+/, '');
-    }
-    return value.replace(/^\.\//, '');
-  }
-
   async function safeImageSwap(el, url, isBg = false) {
-    if (!el) return false;
-    const fallback = el.classList.contains('hero-media') || el.classList.contains('about-hero-image')
-      ? 'assets/hero.svg'
-      : el.classList.contains('about-cinema-image') ? 'assets/story.svg' : '';
-    const requested = normalizeImageUrl(url);
-    const fallbackUrl = normalizeImageUrl(fallback);
-    if (requested) {
-      if (isBg && el.style.backgroundImage.includes(requested)) return true;
-      if (!isBg && el.src && el.src.includes(requested)) return true;
-      if (await preloadImage(requested)) {
-        if (isBg) el.style.backgroundImage = `url("${requested.replace(/"/g, '\\"')}")`;
-        else el.src = requested;
-        el.style.opacity = '1';
-        return true;
-      }
-    }
-    if (isBg && fallbackUrl) {
-      el.style.backgroundImage = `url("${fallbackUrl}")`;
+    if (!el || !url) return false;
+    if (isBg && el.style.backgroundImage.includes(url)) return true;
+    if (!isBg && el.src && el.src.includes(url)) return true;
+
+    // Never expose the fallback asset first. Wait until the CMS image has
+    // actually loaded, then perform a single visual swap.
+    const loaded = await preloadImage(url);
+    if (!loaded) return false;
+
+    if (isBg) {
+      el.style.backgroundImage = `url("${url.replace(/"/g, '\\"')}")`;
       el.style.opacity = '1';
-    } else if (!isBg && fallbackUrl) {
-      el.src = fallbackUrl;
+    } else {
+      el.src = url;
     }
-    return false;
+    return true;
   }
 
   // ===========================================================================
@@ -487,7 +470,7 @@
           if (heroKicker) heroKicker.textContent = extra.heroEyebrow || legacyIntro.eyebrow || heroKicker.textContent;
           if (heroTitle) heroTitle.innerHTML = renderFormatted(extra.heroTitle || legacyIntro.title || heroTitle.innerHTML);
           if (heroLead) heroLead.textContent = extra.heroLead || legacyIntro.lead || heroLead.textContent;
-          if (heroMedia && legacyIntro.imageUrl) await safeImageSwap(heroMedia, legacyIntro.imageUrl, true);
+          // Legacy hero visual is hardcoded; CMS continues to hydrate text.
           if (introKicker) introKicker.textContent = extra.introEyebrow || introKicker.textContent;
           if (introTitle) introTitle.innerHTML = renderFormatted(extra.introTitle || introTitle.innerHTML);
           if (introLead) introLead.textContent = extra.introLead || introLead.textContent;
@@ -611,8 +594,7 @@
           if (lead && hero.lead) lead.textContent = hero.lead;
           if (mark && hero.extraData?.hero_mark) mark.textContent = hero.extraData.hero_mark;
           if (scroll && hero.extraData?.scroll_label) scroll.textContent = hero.extraData.scroll_label;
-          const media = document.querySelector('.hero-media');
-          if (media) await safeImageSwap(media, hero.imageUrl || 'assets/hero.svg', true);
+          // Homepage hero visual is hardcoded; CMS continues to hydrate text.
         }
 
         const approach = contentMap['homepage_approach'];
@@ -698,8 +680,7 @@
               }
             }
           }
-          const bg = document.querySelector('.about-hero-image');
-          if (bg) await safeImageSwap(bg, aboutHero.imageUrl || 'assets/hero.svg', true);
+          // About hero visual is hardcoded; CMS continues to hydrate text.
         }
 
         const aboutIntro = contentMap['about_intro'];
@@ -733,8 +714,7 @@
           if (taglineH2 && (aboutCinema.extraData?.tagline || aboutCinema.lead)) {
             taglineH2.textContent = aboutCinema.extraData?.tagline || aboutCinema.lead;
           }
-          const cinemaBg = document.querySelector('.about-cinema-image');
-          if (cinemaBg) await safeImageSwap(cinemaBg, aboutCinema.imageUrl || 'assets/story.svg', true);
+          // Vision/story visual is hardcoded; CMS continues to hydrate text.
         }
 
         const aboutValues = contentMap['about_values'];
@@ -795,9 +775,12 @@
           if (p && AKCO_DATA.contact.email) p.textContent = AKCO_DATA.contact.email;
         }
         if (details[3]) {
-          const p = details[3].querySelector('p');
-          if (p && AKCO_DATA.social && AKCO_DATA.social.length) {
-            p.textContent = AKCO_DATA.social.map(s => s.label).join(' · ');
+          const socialEl = details[3].querySelector('[data-contact-social]');
+          if (socialEl) {
+            const links = Array.isArray(AKCO_DATA.social) ? AKCO_DATA.social.filter(s => s && s.label && s.url && s.url !== '#') : [];
+            socialEl.innerHTML = links.length
+              ? links.map(s => `<a href="${escapeHtml(s.url)}" target="_blank" rel="noopener noreferrer">${escapeHtml(s.label)} <span>↗</span></a>`).join('')
+              : '<span class="contact-social-empty">Social links will appear here.</span>';
           }
         }
       }
@@ -834,43 +817,7 @@
         } catch(e){}
       }
 
-      let aboutHeroUrl = cached['about_hero']?.imageUrl;
-      let aboutCinemaUrl = cached['about_cinema']?.imageUrl;
-      let homepageHeroUrl = cached['homepage_hero']?.imageUrl;
-
-      if (rawDb) {
-        try {
-          const dbList = JSON.parse(rawDb);
-          const ah = dbList.find(c => c.id === 'about_hero');
-          if (ah && ah.imageUrl && ah.imageUrl !== 'assets/hero.svg') aboutHeroUrl = ah.imageUrl;
-          const ac = dbList.find(c => c.id === 'about_cinema');
-          if (ac && ac.imageUrl && ac.imageUrl !== 'assets/story.svg') aboutCinemaUrl = ac.imageUrl;
-          const hh = dbList.find(c => c.id === 'homepage_hero');
-          if (hh && hh.imageUrl && hh.imageUrl !== 'assets/hero.svg') homepageHeroUrl = hh.imageUrl;
-        } catch(e){}
-      }
-
-      if (aboutHeroUrl) {
-        const bg = document.querySelector('.about-hero-image');
-        if (bg) {
-          bg.style.backgroundImage = `url("${normalizeImageUrl(aboutHeroUrl).replace(/"/g, '\\"')}")`;
-          bg.style.opacity = '1';
-        }
-      }
-      if (aboutCinemaUrl) {
-        const bg = document.querySelector('.about-cinema-image');
-        if (bg) {
-          bg.style.backgroundImage = `url("${normalizeImageUrl(aboutCinemaUrl).replace(/"/g, '\\"')}")`;
-          bg.style.opacity = '1';
-        }
-      }
-      if (homepageHeroUrl) {
-        const bg = document.querySelector('.hero-media');
-        if (bg) {
-          bg.style.backgroundImage = `url("${normalizeImageUrl(homepageHeroUrl).replace(/"/g, '\\"')}")`;
-          bg.style.opacity = '1';
-        }
-      }
+      // Fixed editorial visuals are hardcoded in the page/CSS.
     } catch (e) {}
   }
 

@@ -82,73 +82,75 @@ export async function getSiteContentById(id) {
   return { data: item || null, error: null };
 }
 
-export async function updateSiteContent(id, contentData = {}) {
+export async function updateSiteContent(id, contentData) {
   const client = getSupabase();
-  if (!client) return { data: null, error: new Error('Supabase client not configured') };
+  let dbItem = null;
 
-  try {
-    // Always read the existing row first. This prevents partial edits (especially
-    // image-only edits) from turning required columns such as `title` into NULL.
-    const { data: existing, error: readErr } = await client
-      .from('site_content')
-      .select('*')
-      .eq('id', id)
-      .maybeSingle();
+  if (client) {
+    try {
+      const payload = {};
+      if (contentData.eyebrow !== undefined) payload.eyebrow = contentData.eyebrow;
+      if (contentData.title !== undefined) payload.title = contentData.title;
+      if (contentData.lead !== undefined) payload.lead = contentData.lead;
+      if (contentData.body !== undefined) payload.body = contentData.body;
+      if (contentData.imageUrl !== undefined) payload.image_url = contentData.imageUrl;
+      if (contentData.extraData !== undefined) payload.extra_data = contentData.extraData;
+      payload.updated_at = new Date().toISOString();
 
-    if (readErr) return { data: null, error: readErr };
-
-    const existingTitle = typeof existing?.title === 'string' ? existing.title : '';
-    const incomingTitle = typeof contentData.title === 'string' ? contentData.title.trim() : '';
-    const title = incomingTitle || existingTitle || id.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
-
-    // Build a complete, valid row from existing values + only the fields being changed.
-    const payload = {
-      title,
-      eyebrow: contentData.eyebrow !== undefined ? (contentData.eyebrow ?? '') : (existing?.eyebrow ?? ''),
-      lead: contentData.lead !== undefined ? (contentData.lead ?? '') : (existing?.lead ?? ''),
-      body: contentData.body !== undefined ? (contentData.body ?? '') : (existing?.body ?? ''),
-      image_url: contentData.imageUrl !== undefined ? (contentData.imageUrl ?? '') : (existing?.image_url ?? ''),
-      extra_data: contentData.extraData !== undefined ? (contentData.extraData ?? {}) : (existing?.extra_data ?? {}),
-      updated_at: new Date().toISOString()
-    };
-
-    let saved;
-
-    if (existing) {
-      const { data, error } = await client
+      const { data: updatedData, error: updateErr } = await client
         .from('site_content')
         .update(payload)
         .eq('id', id)
         .select()
         .maybeSingle();
 
-      if (error) return { data: null, error };
-      if (!data) return { data: null, error: new Error(`No site_content row was updated for "${id}". Check the admin RLS UPDATE policy.`) };
-      saved = data;
-    } else {
-      const { data, error } = await client
-        .from('site_content')
-        .insert({ id, ...payload })
-        .select()
-        .single();
+      if (!updateErr && updatedData) {
+        dbItem = mapSiteContentFromDb(updatedData);
+      } else {
+        const insertPayload = {
+          id,
+          title: contentData.title || id.replace(/_/g, ' '),
+          eyebrow: contentData.eyebrow || '',
+          lead: contentData.lead || '',
+          body: contentData.body || '',
+          image_url: contentData.imageUrl || '',
+          extra_data: contentData.extraData || {},
+          ...payload
+        };
 
-      if (error) return { data: null, error };
-      saved = data;
-    }
+        const { data: insertData } = await client
+          .from('site_content')
+          .upsert(insertPayload, { onConflict: 'id' })
+          .select()
+          .single();
 
-    const dbItem = mapSiteContentFromDb(saved);
-
-    // Keep local cache only as a fallback; never let it replace a successful DB value.
-    const list = getLocalSiteContent();
-    const idx = list.findIndex(c => c.id === id);
-    if (idx >= 0) list[idx] = dbItem;
-    else list.push(dbItem);
-    saveLocalSiteContent(list);
-
-    return { data: dbItem, error: null };
-  } catch (err) {
-    return { data: null, error: err instanceof Error ? err : new Error(String(err)) };
+        if (insertData) dbItem = mapSiteContentFromDb(insertData);
+      }
+    } catch (err) {}
   }
+
+  // Update Local Storage store & cache
+  const list = getLocalSiteContent();
+  const idx = list.findIndex(c => c.id === id);
+  const updatedItem = dbItem || {
+    id,
+    title: contentData.title !== undefined ? contentData.title : (idx >= 0 ? list[idx].title : ''),
+    eyebrow: contentData.eyebrow !== undefined ? contentData.eyebrow : (idx >= 0 ? list[idx].eyebrow : ''),
+    lead: contentData.lead !== undefined ? contentData.lead : (idx >= 0 ? list[idx].lead : ''),
+    body: contentData.body !== undefined ? contentData.body : (idx >= 0 ? list[idx].body : ''),
+    imageUrl: contentData.imageUrl !== undefined ? contentData.imageUrl : (idx >= 0 ? list[idx].imageUrl : ''),
+    extraData: contentData.extraData !== undefined ? contentData.extraData : (idx >= 0 ? list[idx].extraData : {}),
+    updatedAt: new Date().toISOString()
+  };
+
+  if (idx >= 0) {
+    list[idx] = updatedItem;
+  } else {
+    list.push(updatedItem);
+  }
+
+  saveLocalSiteContent(list);
+  return { data: updatedItem, error: null };
 }
 
 // =============================================================================

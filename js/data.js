@@ -1,17 +1,3 @@
-function resolveAkcoAssetUrl(url) {
-  if (!url) return '';
-  const value = String(url).trim();
-  if (!value) return '';
-  if (/^(https?:|data:|blob:|\/\/)/i.test(value)) return value;
-  if (/^(?:\.\/)?assets\//i.test(value)) return value.replace(/^\.\//, '');
-  if (/supabase\.co\/storage\/v1\/object\//i.test(value)) return value;
-  const base = window.SUPABASE_CONFIG?.url;
-  if (base && /^[^?#]+\.(?:png|jpe?g|webp|gif|svg)(?:[?#].*)?$/i.test(value)) {
-    return base.replace(/\/$/, '') + '/storage/v1/object/public/akco-media/' + value.replace(/^\/+/, '');
-  }
-  return value.replace(/^\.\//, '');
-}
-
 const AKCO_DATA = {
   homepageSelectedProjectIds: [],
   site: {
@@ -98,38 +84,8 @@ const AKCO_DATA = {
     if (contentMap) {
       let cssRules = '';
       
-      let heroUrl = contentMap['homepage_hero']?.imageUrl;
-      let aboutHeroUrl = contentMap['about_hero']?.imageUrl;
-      let aboutCinemaUrl = contentMap['about_cinema']?.imageUrl;
-      let legacyHeroUrl = contentMap['legacy_intro']?.imageUrl;
-
-      try {
-        const rawDb = localStorage.getItem('akco_db_site_content');
-        if (rawDb) {
-          const list = JSON.parse(rawDb);
-          const h = list.find(c => c.id === 'homepage_hero');
-          if (h && h.imageUrl && h.imageUrl !== 'assets/hero.svg') heroUrl = h.imageUrl;
-          const ah = list.find(c => c.id === 'about_hero');
-          if (ah && ah.imageUrl && ah.imageUrl !== 'assets/hero.svg') aboutHeroUrl = ah.imageUrl;
-          const ac = list.find(c => c.id === 'about_cinema');
-          if (ac && ac.imageUrl && ac.imageUrl !== 'assets/story.svg') aboutCinemaUrl = ac.imageUrl;
-          const lh = list.find(c => c.id === 'legacy_intro');
-          if (lh && lh.imageUrl && lh.imageUrl !== 'assets/history-1.svg') legacyHeroUrl = lh.imageUrl;
-        }
-      } catch(e){}
-
-      if (heroUrl) {
-        cssRules += `.hero-media { background-image: url("${resolveAkcoAssetUrl(heroUrl).replace(/"/g, '\\"')}") !important; opacity: 1 !important; }\n`;
-      }
-      
-      if (aboutHeroUrl) {
-        cssRules += `.about-hero-image { background-image: url("${resolveAkcoAssetUrl(aboutHeroUrl).replace(/"/g, '\\"')}") !important; opacity: 1 !important; }\n`;
-      }
-
-      if (aboutCinemaUrl) {
-        cssRules += `.about-cinema-image { background-image: url("${resolveAkcoAssetUrl(aboutCinemaUrl).replace(/"/g, '\\"')}") !important; opacity: 1 !important; }\n`;
-      }
-
+      // Large editorial visuals are intentionally hardcoded in page/CSS files.
+      // CMS continues to hydrate all text and project data normally.
       if (cssRules) {
         const style = document.createElement('style');
         style.id = 'akco-instant-cache-styles';

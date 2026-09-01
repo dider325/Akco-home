@@ -826,7 +826,7 @@ function renderHomepageView() {
   ) +
   '<div class="panel homepage-manager-intro"><div><div class="eyebrow">Homepage Control Center</div><h2>One place to manage the whole homepage.</h2><p>Edit each section in order, choose any number of projects for Selected Projects, and control the exact order in which they appear.</p></div>' +
   '<div class="homepage-manager-stats"><div><strong>6</strong><span>editable sections</span></div><div><strong>' + state.data.projects.length + '</strong><span>projects available</span></div><div><strong>' + liveSelected.length + '</strong><span>live selected</span></div></div></div>' +
-  '<div class="panel homepage-hero-summary"><div class="homepage-summary-media"><img src="' + escapeHtml(hero.imageUrl || '../assets/hero.svg') + '" alt=""></div><div class="homepage-summary-copy"><span class="eyebrow">Step 01 · Hero</span><h2>' + escapeHtml(hero.title) + '</h2><p>' + escapeHtml(hero.lead) + '</p><button class="btn primary" data-home-edit="homepage_hero">Edit hero</button></div></div>' +
+  '<div class="panel homepage-hero-summary"><div class="homepage-summary-media"><img src="../assets/homepage-hero.png" alt=""></div><div class="homepage-summary-copy"><span class="eyebrow">Step 01 · Hero</span><h2>' + escapeHtml(hero.title) + '</h2><p>' + escapeHtml(hero.lead) + '</p><button class="btn primary" data-home-edit="homepage_hero">Edit hero</button></div></div>' +
   '<div class="section-grid grid homepage-step-grid">' +
     card(2, approach.title || 'The AKCO Approach', approach.lead || '', 'homepage_approach', 'Story & Copy') +
     card(3, philosophy.title || 'Brand Philosophy', (principles.length || 6) + ' principles · ' + (philosophy.lead || ''), 'homepage_philosophy', 'Principles') +
@@ -919,7 +919,7 @@ function renderAboutView() {
 
   return header(
     'About AKCO',
-    'Edit the two visual image banners (Top Hero & Vision), story paragraphs, and core values.',
+    'Edit the About page copy and core values. The large visual images are fixed website assets.',
     '<button class="btn primary" id="btn-save-about">Save all changes</button>'
   ) +
   `<div class="about-editor-container" style="display:flex;flex-direction:column;gap:24px">
@@ -947,12 +947,7 @@ function renderAboutView() {
             <label>Bottom Subtitle (e.g. Established 2005 · Dhaka · Residential Development)</label>
             <input id="about-hero-lead" value="${escapeHtml(aboutHero.lead)}">
           </div>
-          ${renderImageFieldHTML({ 
-            id: 'about-hero-image', 
-            label: 'Top Hero Background Image (একদম টপ সেকশনের ইমেজ)', 
-            value: aboutHero.imageUrl || '', 
-            folder: 'website' 
-          })}
+          
         </div>
       </form>
     </div>
@@ -980,12 +975,7 @@ function renderAboutView() {
             <label>Vision Statement / Main Heading</label>
             <textarea id="about-cinema-title" style="min-height:90px">${escapeHtml(aboutCinema.title)}</textarea>
           </div>
-          ${renderImageFieldHTML({ 
-            id: 'about-cinema-image', 
-            label: 'Vision Background Image (ভিশন সেকশনের ব্যাকগ্রাউন্ড ইমেজ)', 
-            value: aboutCinema.imageUrl || '', 
-            folder: 'website' 
-          })}
+          
         </div>
       </form>
     </div>
@@ -1116,7 +1106,7 @@ function renderLegacyView() {
       <div>
         <div class="eyebrow">Legacy Control Center</div>
         <h2>Manage the page in the same order visitors experience it.</h2>
-        <p>Every important visual and piece of copy is connected to the live Legacy & Leadership page. Upload images here, edit names and bios, and the public page updates from Supabase.</p>
+        <p>Every important piece of copy is connected to the live Legacy & Leadership page. The large hero visual is fixed in the website files; names and bios remain editable here.</p>
       </div>
       <a class="btn" href="../legacy.html" target="_blank" rel="noopener">Preview Legacy page ↗</a>
     </div>
@@ -1131,7 +1121,7 @@ function renderLegacyView() {
           <div class="field"><label>Kicker / Eyebrow</label><input id="legacy-hero-eyebrow" value="${escapeHtml(legacyIntro.eyebrow || 'Management & Legacy')}"></div>
           <div class="field"><label>Supporting copy</label><input id="legacy-hero-lead" value="${escapeHtml(legacyIntro.lead || '')}"></div>
           <div class="field full"><label>Hero headline</label><input id="legacy-hero-title" value="${escapeHtml(legacyIntro.title || '')}" placeholder="Use a line break with <br> if needed"></div>
-          ${renderImageFieldHTML({ id: 'legacy-hero-image', label: 'Hero Background Image', value: legacyIntro.imageUrl || '', folder: 'legacy' })}
+          
           <div class="field full"><button type="submit" class="btn primary" id="btn-save-legacy-hero">Save hero</button></div>
         </div>
       </form>
@@ -2570,7 +2560,7 @@ function homepageContentModal(sectionId) {
   const name = names[sectionId] || sectionId;
   let body = '';
   if (sectionId === 'homepage_hero') {
-    body = '<div class="field-grid"><div class="field"><label>Eyebrow</label><input id="hp-eyebrow" value="'+escapeHtml(item.eyebrow)+'"></div><div class="field"><label>Main heading</label><input id="hp-title" value="'+escapeHtml(item.title)+'"></div><div class="field full"><label>Description</label><textarea id="hp-lead">'+escapeHtml(item.lead)+'</textarea></div>'+renderImageFieldHTML({id:'hp-image',label:'Hero Background Image',value:item.imageUrl||'',folder:'website'})+'</div>';
+    body = '<div class="field-grid"><div class="field"><label>Eyebrow</label><input id="hp-eyebrow" value="'+escapeHtml(item.eyebrow)+'"></div><div class="field"><label>Main heading</label><input id="hp-title" value="'+escapeHtml(item.title)+'"></div><div class="field full"><label>Description</label><textarea id="hp-lead">'+escapeHtml(item.lead)+'</textarea></div></div>';
   } else if (sectionId === 'homepage_approach') {
     body = '<div class="field-grid"><div class="field"><label>Eyebrow</label><input id="hp-eyebrow" value="'+escapeHtml(item.eyebrow)+'"></div><div class="field"><label>Section kicker</label><input id="hp-kicker" value="'+escapeHtml(data.section_kicker||'')+'"></div><div class="field full"><label>Heading</label><textarea id="hp-title">'+escapeHtml(item.title)+'</textarea></div><div class="field full"><label>Lead paragraph</label><textarea id="hp-lead">'+escapeHtml(item.lead)+'</textarea></div><div class="field"><label>Micro copy</label><input id="hp-body" value="'+escapeHtml(item.body)+'"></div><div class="field"><label>Link label</label><input id="hp-link-label" value="'+escapeHtml(data.link_label||'Discover AKCO')+'"></div><div class="field"><label>Link URL</label><input id="hp-link-url" value="'+escapeHtml(data.link_url||'about.html')+'"></div></div>';
   } else if (sectionId === 'homepage_philosophy') {
@@ -2584,12 +2574,10 @@ function homepageContentModal(sectionId) {
     body = '<div class="field-grid"><div class="field"><label>Eyebrow</label><input id="hp-eyebrow" value="'+escapeHtml(item.eyebrow)+'"></div><div class="field full"><label>Heading</label><textarea id="hp-title">'+escapeHtml(item.title)+'</textarea></div><div class="field full"><label>Lead</label><textarea id="hp-lead">'+escapeHtml(item.lead)+'</textarea></div><div class="field"><label>Primary button label</label><input id="hp-primary-label" value="'+escapeHtml(primary.label||'Explore Projects')+'"></div><div class="field"><label>Primary button URL</label><input id="hp-primary-url" value="'+escapeHtml(primary.url||'projects.html')+'"></div><div class="field"><label>Secondary button label</label><input id="hp-secondary-label" value="'+escapeHtml(secondary.label||'Contact AKCO')+'"></div><div class="field"><label>Secondary button URL</label><input id="hp-secondary-url" value="'+escapeHtml(secondary.url||'contact.html')+'"></div></div>';
   }
   getModalRoot().innerHTML = '<div class="modal-backdrop" data-close-modal><div class="modal modal-wide"><div class="modal-head"><div><div class="eyebrow">Homepage · Step</div><h2>'+escapeHtml(name)+'</h2></div><button class="icon-btn close-modal" data-close-modal>×</button></div><form id="form-home-section"><div class="modal-body">'+body+'</div><div class="modal-foot"><button type="button" class="btn" data-close-modal>Cancel</button><button type="submit" class="btn primary" id="btn-save-home-section">Save section</button></div></form></div></div>';
-  if (sectionId === 'homepage_hero') initImageFieldEvents('hp-image','website');
   const form=document.getElementById('form-home-section');
   form.onsubmit=async e=>{
     e.preventDefault(); const btn=document.getElementById('btn-save-home-section'); btn.disabled=true; btn.textContent='Saving...';
     const payload={eyebrow:document.getElementById('hp-eyebrow')?.value.trim(),title:document.getElementById('hp-title')?.value.trim(),lead:document.getElementById('hp-lead')?.value.trim()};
-    if(sectionId==='homepage_hero') payload.imageUrl=document.getElementById('hp-image')?.value.trim()||'';
     if(sectionId==='homepage_approach') payload.body=document.getElementById('hp-body')?.value.trim()||'';
     if(sectionId==='homepage_approach') payload.extraData={...data,section_kicker:document.getElementById('hp-kicker')?.value.trim(),link_label:document.getElementById('hp-link-label')?.value.trim(),link_url:document.getElementById('hp-link-url')?.value.trim()};
     if(sectionId==='homepage_philosophy') payload.extraData={...data,topline_span:document.getElementById('hp-topline')?.value.trim(),principles:(document.getElementById('hp-principles')?.value||'').split(/\r?\n/).map(x=>x.trim()).filter(Boolean).map(line=>{const parts=line.split('|');return {title:parts.shift().trim(),description:parts.join('|').trim()};})};
@@ -2841,8 +2829,6 @@ function bindViewInteractions() {
   });
 
   // About Save & Image Field Initializers
-  initImageFieldEvents('about-hero-image', 'website');
-  initImageFieldEvents('about-cinema-image', 'website');
 
   const btnSaveAbout = document.getElementById('btn-save-about');
   if (btnSaveAbout) {
@@ -2854,12 +2840,10 @@ function bindViewInteractions() {
         const heroTitle = document.getElementById('about-hero-title')?.value.trim() || '';
         const heroEyebrow = document.getElementById('about-hero-eyebrow')?.value.trim() || '';
         const heroLead = document.getElementById('about-hero-lead')?.value.trim() || '';
-        const heroImage = document.getElementById('about-hero-image')?.value.trim() || '';
 
         const cinemaEyebrow = document.getElementById('about-cinema-eyebrow')?.value.trim() || '';
         const cinemaTitle = document.getElementById('about-cinema-title')?.value.trim() || '';
         const cinemaTagline = document.getElementById('about-cinema-tagline')?.value.trim() || '';
-        const cinemaImage = document.getElementById('about-cinema-image')?.value.trim() || '';
 
         const introEyebrow = document.getElementById('about-intro-eyebrow')?.value.trim() || '';
         const introLead = document.getElementById('about-intro-lead')?.value.trim() || '';
@@ -2878,13 +2862,11 @@ function bindViewInteractions() {
             title: heroTitle || 'Homes Done Thoughtfully.',
             eyebrow: heroEyebrow || 'About AKCO',
             lead: heroLead || 'Established 2005 · Dhaka · Residential Development',
-            imageUrl: heroImage
           }),
           updateSiteContent('about_cinema', {
             title: cinemaTitle || 'Vision Statement',
             eyebrow: cinemaEyebrow || 'Vision',
             lead: cinemaTagline || 'Homes Done Thoughtfully',
-            imageUrl: cinemaImage,
             extraData: {
               vision_eyebrow: cinemaEyebrow || 'Vision',
               tagline_eyebrow: 'Tagline',
@@ -2929,7 +2911,6 @@ function bindViewInteractions() {
   // Legacy Actions — dedicated page controls
   const legacyHeroForm = document.getElementById('form-legacy-hero');
   if (legacyHeroForm) {
-    initImageFieldEvents('legacy-hero-image', 'legacy');
     legacyHeroForm.onsubmit = async (e) => {
       e.preventDefault();
       const btn = document.getElementById('btn-save-legacy-hero');
@@ -2938,7 +2919,6 @@ function bindViewInteractions() {
         eyebrow: document.getElementById('legacy-hero-eyebrow')?.value.trim() || 'Management & Legacy',
         title: document.getElementById('legacy-hero-title')?.value.trim() || 'Built on values. Carried forward.',
         lead: document.getElementById('legacy-hero-lead')?.value.trim() || '',
-        imageUrl: document.getElementById('legacy-hero-image')?.value.trim() || '',
         extraData: {
           ...(state.data.siteContent.find(c => c.id === 'legacy_intro')?.extraData || {}),
           heroEyebrow: document.getElementById('legacy-hero-eyebrow')?.value.trim() || '',
@@ -2948,7 +2928,6 @@ function bindViewInteractions() {
       });
       btn.disabled = false; btn.textContent = 'Save hero';
       if (error) { toast('Error saving Legacy hero: ' + error.message, 'error'); return; }
-      clearImageDraft('legacy-hero-image');
       if (savedLegacyHero) {
         const idx = state.data.siteContent.findIndex(c => c.id === 'legacy_intro');
         if (idx >= 0) state.data.siteContent[idx] = savedLegacyHero;

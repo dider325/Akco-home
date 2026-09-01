@@ -9,52 +9,20 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
-<script>
-  try {
-    let cached = {};
-    let css = '';
-    const rawCache = localStorage.getItem('akco_site_content_cache');
-    const rawDb = localStorage.getItem('akco_db_site_content');
-    if (rawCache) { try { cached = JSON.parse(rawCache); } catch(e){} }
-    if ((!cached || !Object.keys(cached).length) && rawDb) {
-      try {
-        const dbList = JSON.parse(rawDb);
-        if (Array.isArray(dbList)) cached = Object.fromEntries(dbList.map(c => [c.id, c]));
-      } catch(e){}
-    }
-    let homepageHeroUrl = cached['homepage_hero']?.imageUrl;
-    let aboutHeroUrl = cached['about_hero']?.imageUrl;
-    let aboutCinemaUrl = cached['about_cinema']?.imageUrl;
-    if (rawDb) {
-      try {
-        const dbList = JSON.parse(rawDb);
-        const h = dbList.find(c => c.id === 'homepage_hero');
-        if (h && h.imageUrl && h.imageUrl !== 'assets/hero.svg') homepageHeroUrl = h.imageUrl;
-        const ah = dbList.find(c => c.id === 'about_hero');
-        if (ah && ah.imageUrl && ah.imageUrl !== 'assets/hero.svg') aboutHeroUrl = ah.imageUrl;
-        const ac = dbList.find(c => c.id === 'about_cinema');
-        if (ac && ac.imageUrl && ac.imageUrl !== 'assets/story.svg') aboutCinemaUrl = ac.imageUrl;
-      } catch(e){}
-    }
-    if (homepageHeroUrl) {
-      css += '.hero-media { background-image: url("' + homepageHeroUrl.replace(/"/g, '\\"') + '") !important; opacity: 1 !important; }';
-    }
-    if (aboutHeroUrl) {
-      css += '.about-hero-image { background-image: url("' + aboutHeroUrl.replace(/"/g, '\\"') + '") !important; opacity: 1 !important; }';
-    }
-    if (aboutCinemaUrl) {
-      css += '.about-cinema-image { background-image: url("' + aboutCinemaUrl.replace(/"/g, '\\"') + '") !important; opacity: 1 !important; }';
-    }
-    if (css) document.write('<style>' + css + '</style>');
-  } catch(e){}
-</script>
+<style>
+  /* Fixed editorial hero visual — intentionally not CMS-managed. */
+  .hero-media {
+    background-image: url("assets/homepage-hero.png") !important;
+    opacity: 1 !important;
+  }
+</style>
 </head>
 <body>
 <div class="page-wipe"></div><div class="loader"><span><img src="assets/akco-logo.png" alt="AKCO"></span></div>
 <header class="header" data-header></header>
 <main>
 <section class="hero">
-  <div class="hero-media" style="background-image:url('assets/hero.svg');opacity:1"></div><div class="hero-overlay"></div><div class="hero-mark" aria-hidden="true">AKCO</div>
+  <div class="hero-media"></div><div class="hero-overlay"></div><div class="hero-mark" aria-hidden="true">AKCO</div>
   <div class="wrap hero-content">
     <div class="eyebrow" style="color:rgba(255,255,255,.72)">Boutique Residential Developer · Dhaka</div>
     <h1 class="display">Homes Done<br>Thoughtfully.</h1>

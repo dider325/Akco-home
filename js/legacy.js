@@ -51,6 +51,37 @@
       if (visualLabel) visualLabel.textContent = visualLabel.dataset.founderLabel || 'The Founder';
     };
 
+    // Mobile correction: the desktop storytelling visual is intentionally
+    // overlaid/sticky, but on narrow screens the visual becomes a normal
+    // block. Keep the founder visual at the top and render the second
+    // storytelling image inline with the second story block so both story
+    // figures remain visible on phones. The source stays synced with the
+    // existing CMS-swapped image.
+    if (window.innerWidth <= 900 && nameBlock) {
+      let mobileNameVisual = nameBlock.querySelector(".legacy-mobile-story-image");
+      if (!mobileNameVisual) {
+        mobileNameVisual = document.createElement("div");
+        mobileNameVisual.className = "legacy-mobile-story-image";
+        const mobileImg = document.createElement("img");
+        mobileImg.alt = nameImage.getAttribute("alt") || "Legacy figure";
+        mobileImg.src = nameImage.currentSrc || nameImage.src;
+        mobileNameVisual.appendChild(mobileImg);
+        nameBlock.insertBefore(mobileNameVisual, nameBlock.firstChild);
+
+        // Keep the mobile copy aligned if Supabase hydration changes the
+        // source of the existing storytelling image.
+        const syncMobileImage = () => {
+          const nextSrc = nameImage.currentSrc || nameImage.src;
+          if (nextSrc && mobileImg.src !== nextSrc) mobileImg.src = nextSrc;
+        };
+        if (window.MutationObserver) {
+          const sourceObserver = new MutationObserver(syncMobileImage);
+          sourceObserver.observe(nameImage, { attributes: true, attributeFilter: ["src"] });
+        }
+        nameImage.addEventListener("load", syncMobileImage);
+      }
+    }
+
     if (window.IntersectionObserver) {
       const imageObserver = new IntersectionObserver((entries) => {
         entries.forEach((entry) => {
