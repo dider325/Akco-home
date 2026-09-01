@@ -286,7 +286,7 @@ body{font-family:var(--sans);font-size:16px}
 .links{gap:32px}.links a{font-size:13px;text-transform:none;letter-spacing:.025em;font-weight:500}
 .menu{font-size:12px;letter-spacing:.08em}
 /* Client refinement: slightly more prominent logo, while preserving header balance. */
-.logo{width:76px;height:78px}
+.logo{width:84px;height:86px}
 p{font-size:15.5px;line-height:1.82}
 .micro-copy{font-size:11px;letter-spacing:.08em;text-transform:none}
 .section-kicker{font-size:12px;letter-spacing:.10em;font-weight:600;text-transform:none}
@@ -497,7 +497,7 @@ p{font-size:15.5px;line-height:1.82}
 .cta-actions .btn-filled{background:var(--accent);border-color:var(--accent)}
 
 @media(max-width:900px){
-  .logo{width:72px;height:74px}
+  .logo{width:80px;height:82px}
   .loader span{width:124px;height:124px}
   .intro-section{background-size:100% 100%,auto}
   .intro-grid{gap:48px}
@@ -525,7 +525,7 @@ p{font-size:15.5px;line-height:1.82}
 }
 
 @media(max-width:560px){
-  .logo{width:68px;height:71px}
+  .logo{width:76px;height:79px}
   .loader span{width:120px;height:120px}
   .intro-section:after{font-size:45vw;right:-.12em;bottom:-.02em}
   .intro-grid h2{font-size:17.5vw;line-height:.88}
