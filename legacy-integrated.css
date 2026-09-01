@@ -62,8 +62,8 @@
 .legacy-leadership-heading h2 em{font-style:italic}
 .legacy-leader{max-width:1180px;margin:0 auto 155px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8vw;align-items:center}
 .legacy-leader-right .legacy-portrait{order:2}.legacy-leader-right .legacy-leader-copy{order:1}
-.legacy-portrait{position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--paper)}
-.legacy-portrait img{width:100%;height:100%;object-fit:cover;filter:saturate(.78)}
+.legacy-portrait{position:relative;overflow:hidden;background:transparent}
+.legacy-portrait img{display:block;width:100%;height:auto;object-fit:initial;filter:saturate(.78)}
 .legacy-portrait:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,rgba(25,23,20,.28),transparent 42%);pointer-events:none}
 .legacy-portrait span{position:absolute;z-index:2;left:24px;bottom:20px;color:#fff;font-family:var(--serif);font-size:16px}
 .legacy-leader-copy{max-width:580px}
