@@ -1,0 +1,17 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "express",
+  "functions": {
+    "server.js": {
+      "includeFiles": [
+        "*.html",
+        "styles.css",
+        "legacy.css",
+        "legacy-integrated.css",
+        "js/**",
+        "assets/**",
+        "admin/**"
+      ]
+    }
+  }
+}
