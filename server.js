@@ -4,17 +4,14 @@ import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-
 const app = express();
-const PORT = 3000;
-const HOST = '0.0.0.0';
 
-// Health check endpoint
+// API: health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-// Public Supabase configuration endpoint
+// API: public Supabase configuration
 app.get('/api/config', (req, res) => {
   res.json({
     supabaseUrl: process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || '',
@@ -22,14 +19,24 @@ app.get('/api/config', (req, res) => {
   });
 });
 
-// Serve static assets with html extension fallback
-app.use(express.static(__dirname, { extensions: ['html'] }));
+// Serve all existing website files: HTML, CSS, JS, images, admin assets, etc.
+app.use(express.static(__dirname, {
+  index: 'index.html',
+  extensions: ['html']
+}));
 
-// Fallback for HTML routing
+// Keep the existing clean page URLs working.
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
-app.listen(PORT, HOST, () => {
-  console.log(`AKCO Real Estate server running at http://${HOST}:${PORT}`);
-});
+// Vercel uses the exported Express app.
+// Local development still works with: npm start
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`AKCO Real Estate server running on port ${PORT}`);
+  });
+}
+
+export default app;
