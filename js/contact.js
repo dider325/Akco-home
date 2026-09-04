@@ -58,9 +58,24 @@
       }
 
       try {
-        const { submitEnquiry, ensureClientConfigured } = await import('/admin/services/index.js');
-        await ensureClientConfigured();
-        const result = await submitEnquiry({ name, email, phone, message });
+        const response = await fetch(
+          'https://npzdeewjcuqiixqrposm.supabase.co/functions/v1/send-contact-email',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': window.SUPABASE_CONFIG.anonKey,
+              'Authorization': `Bearer ${window.SUPABASE_CONFIG.anonKey}`
+            },
+            body: JSON.stringify({ name, email, phone, message })
+          }
+        );
+
+        const data = await response.json();
+        const result = response.ok
+          ? { data, error: null }
+          : { data: null, error: new Error(data.error || 'Unable to send enquiry') };
+        
 
         if (result.error) {
           showFeedback(form, result.error.message || 'Unable to submit enquiry. Please try again.', 'error');
