@@ -582,3 +582,110 @@ body.lightbox-open{overflow:hidden}
 /* CMS boot gate: reveal the public site only after Supabase hydration. */
 body.cms-booting > *:not(.loader):not(.page-wipe){visibility:hidden!important}
 body.cms-ready > *:not(.loader):not(.page-wipe){visibility:visible!important}
+
+
+/* =========================================================
+   AKCO FRONTEND POLISH — Loader + About Hero mobile fix
+   Existing layout/functionality intentionally preserved.
+   ========================================================= */
+
+/* Premium loading mark animation */
+.loader{
+  overflow:hidden;
+}
+.loader span{
+  position:relative;
+  width:clamp(76px,8vw,96px);
+  height:clamp(76px,8vw,96px);
+  display:grid;
+  place-items:center;
+  animation:akcoLoaderLogoIn 1.15s cubic-bezier(.22,.8,.2,1) both;
+}
+.loader span::before{
+  content:"";
+  position:absolute;
+  inset:-16px;
+  border:1px solid rgba(193,145,112,.38);
+  border-radius:50%;
+  transform:scale(.72);
+  opacity:0;
+  animation:akcoLoaderRing 2.4s cubic-bezier(.2,.7,.2,1) .15s infinite;
+}
+.loader span::after{
+  content:"";
+  position:absolute;
+  inset:-30px;
+  border-radius:50%;
+  background:radial-gradient(circle,rgba(193,145,112,.16) 0%,rgba(193,145,112,0) 68%);
+  opacity:0;
+  animation:akcoLoaderGlow 2.2s ease-in-out .25s infinite;
+  pointer-events:none;
+}
+.loader span img{
+  position:relative;
+  z-index:2;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  transform-origin:center;
+  animation:akcoLoaderMark 2.8s ease-in-out .15s infinite;
+  will-change:transform,filter,opacity;
+}
+@keyframes akcoLoaderLogoIn{
+  0%{opacity:0;transform:translateY(12px) scale(.82)}
+  65%{opacity:1;transform:translateY(-2px) scale(1.035)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+@keyframes akcoLoaderMark{
+  0%,100%{transform:scale(1);filter:drop-shadow(0 0 0 rgba(193,145,112,0))}
+  50%{transform:scale(1.035);filter:drop-shadow(0 8px 18px rgba(193,145,112,.18))}
+}
+@keyframes akcoLoaderRing{
+  0%{opacity:0;transform:scale(.72)}
+  18%{opacity:1}
+  78%{opacity:0;transform:scale(1.12)}
+  100%{opacity:0;transform:scale(1.16)}
+}
+@keyframes akcoLoaderGlow{
+  0%,100%{opacity:0;transform:scale(.82)}
+  50%{opacity:1;transform:scale(1.04)}
+}
+@media(prefers-reduced-motion:reduce){
+  .loader span,.loader span img,.loader span::before,.loader span::after{
+    animation:none!important;
+  }
+  .loader span{opacity:1;transform:none}
+  .loader span::before,.loader span::after{display:none}
+}
+
+/* About hero title — prevent mobile clipping while preserving desktop design */
+@media(max-width:560px){
+  .about-hero-content{
+    width:calc(100% - 28px);
+    max-width:none;
+    padding-bottom:48px;
+  }
+  .about-hero-title{
+    width:100%;
+    max-width:100%;
+    font-size:clamp(52px,14.2vw,82px);
+    line-height:.88;
+    letter-spacing:-.055em;
+    margin:18px 0 42px;
+    text-wrap:balance;
+    overflow:visible;
+  }
+  .about-hero-title em{
+    display:inline;
+    white-space:normal;
+  }
+}
+
+/* Loader loading indicator: three subtle dots below the AKCO mark */
+.loader span{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.loader-dots{display:flex;align-items:center;justify-content:center;gap:6px;margin-top:14px}
+.loader-dots i{display:block;width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.28;animation:akcoLoaderDot 1.15s ease-in-out infinite}
+.loader-dots i:nth-child(2){animation-delay:.18s}
+.loader-dots i:nth-child(3){animation-delay:.36s}
+@keyframes akcoLoaderDot{0%,60%,100%{opacity:.25;transform:translateY(0) scale(.82)}30%{opacity:.95;transform:translateY(-3px) scale(1)}}
+@media(prefers-reduced-motion:reduce){.loader-dots i{animation:none;opacity:.55;transform:none}}
